@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+ <head>
+  <title>
+     Brain Quiz - Tom Neckermann Editie
+  </title>
+  <script type="text/javascript" src="BrainStormCODE.js"></script>
+  <script> 
+    //neemt een string en maakt er een array van --> kan alleen met string waarbij ieder element gescheiden is door "|" teken
+    function generateArrayVanStorageString(inString){
+        var uitArray = new Array(telAantalKarakters(inString,"|"));
+        var currentIndex = 0;
+        uitArray[0] = "";
+        for (var i = 1; i < inString.length - 2; i++){
+            if (inString[i]!="|"){
+                uitArray[currentIndex] += inString[i];
+            }
+            else{
+                currentIndex++;
+                uitArray[currentIndex] = "";
+            }
+        }
+        return uitArray;
+    }
+
+    //genereert een tabel op basis van een ingegeven array
+    function generateTable(inArray){
+        var data = inArray;
+        var table = document.createElement("table");
+        table.border="3";
+        table.width="1000";
+        var i = 0;
+        for (var r = 0; r < (inArray.length/4); r++) {
+          var row = table.insertRow(-1);
+          for (var c = 0; c < 4; c++) {
+            var cell = row.insertCell(-1);
+            cell.appendChild(document.createTextNode(data[i++]));
+          }
+        }
+        document.body.appendChild(table);
+    }
+
+    //schrijft een ingegeven string uit in font Viner Hand ITC, met ingegeven grootte
+    function writeOut(inString,size){
+      document.write("<span style=\"color:white;font-size:" + size + "em; font-family:Viner Hand ITC;\"><br>"+inString+"<\/span>");
+    }
+    //schrijft "&nbsp" (= spatie) 'aantal' keer uit
+    function generateSpaces(aantal){
+      var uitString = "";
+      for (var i = 0; i < aantal; i++){
+        uitString += "&nbsp;";
+      }
+      return uitString;
+    }
+    //print <br> (\n maar voor html) 'aantal' keer uit
+    function nextLine(aantal){
+      for (var i = 0; i < aantal ; i++){
+      document.write("<br>");
+      }
+    }
+
+    //returned aantal keer een ingegeven karakter voorkomt in een ingegeven string
+    function telAantalKarakters(inString,inKarakter){
+        var aantalKarakters = 0;
+        for (var i = 0; i < inString.length; i++){
+            if (inString.charAt(i)==inKarakter){
+                aantalKarakters++;
+            }
+        }
+        return aantalKarakters;
+    }
+
+    //vindt de eerstvolgende lege plaats in een array, return de index hiervan
+    function findEmptyIndex(inArray){
+      var emptyIndex = -1;
+      var foundEmpty = false;
+      for (var i = 0; i < 999 && !foundEmpty; i++){
+        if(inArray[i]==undefined){
+          emptyIndex = i;
+          foundEmpty = true;
+        }
+      }
+      return emptyIndex;
+    }
+
+    /*
+    |
+    | Cookie/Localstorage functies
+    V
+    */
+
+    //functie om score op te slaan in score array (cookie), en indien nodig de highscore hiermee te vervangen
+    //high score is opgeslaan als eerste 4 elementen in array (gebruikerNaam, totaleScore, traject, datum), 'all scores' zijn opgeslaan vanaf 5de element (index 4)
+    function storeScore(gebruikerNaam,totaleScore,traject){
+       var newHighScore = false;
+       var scoresArray;
+       //1. Check of er al scores zijn opgeslaan. Indien niet, nieuwe array maken en ingegeven gegevens bij High Score zetten 
+       if (localStorage.getItem('scoresData')==null){
+           scoresArray = new Array(999);
+           //highscore data:
+           scoresArray[0] = gebruikerNaam;
+           scoresArray[1] = totaleScore;
+           scoresArray[2] = traject;
+           scoresArray[3] = this.Date().substring(0,10);
+           newHighScore = true;
+       }
+       else {
+         //2. Als er al scores zijn opgeslaan, haal array uit deze storage en kijk of ingegeven score hoger is dan High Score. Indien wel, High Score vervangen
+         scoresArray =  generateArrayVanStorageString(localStorage.getItem('scoresData'));
+         if (totaleScore > scoresArray[1]){
+           //highscore data:
+             scoresArray[0] = gebruikerNaam;
+             scoresArray[1] = totaleScore;
+             scoresArray[2] = traject;
+             scoresArray[3] = this.Date().substring(0,10);
+             newHighScore = true;
+         }
+       }
+       //3. Voeg ingegeven gegevens bij All Scores toe /gebeurt altijd, onafhankelijk of high score werd gezet
+       //all scores data:;
+       var emptyIndex = findEmptyIndex(scoresArray);
+       scoresArray[emptyIndex] = gebruikerNaam;
+       scoresArray[emptyIndex+1] = totaleScore;
+       scoresArray[emptyIndex+2] = traject;
+       scoresArray[emptyIndex+3] = this.Date().substring(0,10);
+       //4. Verander array naar een string en store die in localstorage
+       localStorage.setItem('scoresData', JSON.stringify(generateStringVanArray(scoresArray)));
+       //5.return of er een nieuwe high score is gezet
+       return newHighScore;
+    }
+    //confirm(high score + all scores)
+    function retrieveStoredScores(booleanNewHighScore){
+      var uitString = "";
+      var scoresArray = generateArrayVanStorageString(localStorage.getItem('scoresData'));
+      if(booleanNewHighScore==true){
+        uitString+= "Proficiat, je hebt een nieuwe High Score gezet!\n";
+      }
+      else{
+        uitString+= "Je hebt geen nieuwe High Score gezet...\n";
+      }
+      uitString+= "\nHIGH SCORE:\n" + "- " + scoresArray[0] + ", " + scoresArray[1] + "/100, " + scoresArray[2] + " traject, op " + scoresArray[3] + "\n";
+      uitString+= "\nALL SCORES:\n";
+      //vanaf element 5 (scoresArray[4]) staan 'all scores':
+      var arrayIndex = 4;
+      for (var i = 1; i < parseInt(findEmptyIndex(scoresArray)/4); i++){
+          uitString += "- " + scoresArray[arrayIndex] + ", " + scoresArray[arrayIndex+1] + "/100, " + scoresArray[arrayIndex+2] + " traject, op " + scoresArray[arrayIndex+3] + "\n";
+          arrayIndex += 4;
+      }
+      confirm(uitString);
+    }
+
+    /*
+    ^
+    | Eind cookie/localstorage functies
+    |
+    */
+    
+  </script>
+ </head>
+<body background="tableBACKGROUND.png">
+  <script>
+    //localStorage.clear(); /*<-- haal haakjes weg om cookies te verwijderen (voor troubleshooting)*/
+
+   /*
+   |
+   |
+   | Deel 1 : Gegevens van Brain Storm overbrengen en opslaan;
+   |
+   |
+   V
+   */ 
+
+    // Importeer brain storm data
+    var brainStormImportedData = localStorage.getItem('brainStormData');
+    var brainStormAlleVragenEnAntwoorden = generateArrayVanStorageString(brainStormImportedData);
+    // Importeer brain storm resultaten
+    var brainStormImportedResultaten = localStorage.getItem('brainStormResultaten');
+    var brainStormResultaten = generateArrayVanStorageString(brainStormImportedResultaten);
+    //score en aantalVragen onder globale variabelen opslaan
+    var traject = brainStormResultaten[0];
+    var gebruikerPunten = brainStormResultaten[1];
+    var aantalVragen = brainStormResultaten[2];
+    var gebruikerNaam = brainStormResultaten[3];
+    var totaleScore = parseInt((gebruikerPunten/5)/aantalVragen*100);
+   /*
+   |
+   |
+   | Deel 2 : Score bewaren + Welcome message (indien nieuwe high score: "Proficiat", anders: "Je bent klaar met traject...")
+   |
+   |
+   V
+   */ 
+    var highScoreBoolean = storeScore(gebruikerNaam,totaleScore,traject); //plaats score en sla als boolean op of er nieuwe high score is of niet!
+
+    var welcomeMessage = "";
+    if(highScoreBoolean==false){welcomeMessage = gebruikerNaam + ", je bent klaar met het " + traject + " traject.\nSpijtig genoeg heb je geen nieuwe High Score geplaatst.";}
+    if(highScoreBoolean==true){welcomeMessage = "Proficiat " + gebruikerNaam + "!\nJe hebt een nieuwe High Score geplaatst met het traject:\n" + traject;}
+    confirm(welcomeMessage);
+
+   /*
+   |
+   |
+   | Deel 3 : Resultaten uitprinten + Tabel aanmaken
+   |
+   |
+   V
+   */ 
+    //Resultaten uitprinten:
+    nextLine(4);
+    writeOut(generateSpaces(4)+"Hierbij je resultaten:",2.5);
+    writeOut(generateSpaces(12)+"- Traject: " + traject,1.7);
+    writeOut(generateSpaces(12)+"- Aantal vragen: " + aantalVragen,1.7);
+    writeOut(generateSpaces(12)+"- Juiste antwoorden: " + (gebruikerPunten/5),1.7);
+    writeOut(generateSpaces(12)+"- Totale score: " + totaleScore + "/100",1.7);
+    writeOut(generateSpaces(4)+"Meer opties?",2.5);
+    nextLine(4);
+    writeOut(generateSpaces(4)+"Bekijk al je vragen en antwoorden:",1.5);
+    //Tabel maken:
+    nextLine(1);
+    writeOut(generateSpaces(50)+"-De vraag-"+generateSpaces(55)+"-Jouw antwoord-"+generateSpaces(28)+"-Juist antwoord-"+generateSpaces(13)+"-Resultaat-");
+    generateTable(brainStormAlleVragenEnAntwoorden);
+
+   /*
+   |
+   |
+   | Deel 4 : Twee knoppen aanmaken ("Start Brain Storm!" en "Bekijk High Scores!")
+   |
+   |
+   V
+   */ 
+  </script>
+
+  <a class="startBrainStormButton" onclick="startProgramma()" value="Start Brain Quiz!" style="position:absolute; top:485px; left:45px;">Start Brain Storm!</a>
+  <a class="startBrainStormButton" onclick="retrieveStoredScores(highScoreBoolean)" value="Start Brain Quiz!" style="position:absolute; top:485px; left:265px;">Bekijk Scores!</a>
+  
+  <style type="text/css">
+  .startBrainStormButton {
+    background-color:transparent;
+    -webkit-border-top-left-radius:0px;
+    -moz-border-radius-topleft:0px;
+    border-top-left-radius:0px;
+    -webkit-border-top-right-radius:0px;
+    -moz-border-radius-topright:0px;
+    border-top-right-radius:0px;
+    -webkit-border-bottom-right-radius:0px;
+    -moz-border-radius-bottomright:0px;
+    border-bottom-right-radius:0px;
+    -webkit-border-bottom-left-radius:0px;
+    -moz-border-radius-bottomleft:0px;
+    border-bottom-left-radius:0px;
+    text-indent:0;
+    border:2px solid #ebf0f5;
+    display:inline-block;
+    color:#ffffff;
+    font-family:Viner Hand ITC;
+    font-size:18px;
+    font-weight:bold;
+    font-style:normal;
+    height:45px;
+    line-height:45px;
+    width:200px;
+    text-decoration:none;
+    text-align:center;
+  }
+</body>
+</html>
